@@ -48,3 +48,11 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Share VS Code configuration; keep local editor state private.
+!/.vscode/
+/.vscode/*
+!/.vscode/settings.json
+!/cpp/.vscode/
+/cpp/.vscode/*
+!/cpp/.vscode/settings.json

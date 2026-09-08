@@ -84,6 +84,21 @@ at `ws://127.0.0.1:10000`.
 
 ## Validation
 
+### VS Code IntelliSense
+
+Open either the repository root or `cpp/` in VS Code with the Microsoft C/C++
+extension. The checked-in workspace settings select C++26 and read CMake's
+`cpp/build/compile_commands.json`, including the compiler, SDK, defines, and
+Zenoh include paths. Generate it with `cmake -S cpp -B cpp/build` from the
+repository root (also done by the setup script). The generated database stays
+ignored because it contains machine-specific paths.
+
+If old diagnostics remain, run **C/C++: Reset IntelliSense Database** and then
+**Developer: Reload Window** from the Command Palette. For persistent errors,
+**C/C++: Log Diagnostics** shows the compiler and arguments actually in use.
+
+### Build and messaging checks
+
 ```sh
 cargo fmt --check --manifest-path rust/Cargo.toml
 cargo build --locked --manifest-path rust/Cargo.toml

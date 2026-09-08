@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(zenoh_cpp_demo LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(zenohc REQUIRED CONFIG PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../.zenoh/zenoh-c")
 add_executable(zenoh-cpp main.cpp)
 if("cxx_std_26" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
