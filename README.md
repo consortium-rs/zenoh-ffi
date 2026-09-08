@@ -35,6 +35,9 @@ and explicitly uses `-std=c++26`; unsupported compilers fail configuration.
 Language mode does not imply every C++26 feature is implemented—check the
 [Clang feature status](https://clang.llvm.org/cxx_status.html) and
 [libc++ feature status](https://libcxx.llvm.org/Status/Cxx26.html) for specific features.
+The example uses `std::println` for output, `std::format` for message payloads,
+`std::views::iota` for the publishing sequence, and chrono duration literals.
+Output is explicitly flushed so redirected logs remain visible during a run.
 
 ```sh
 bash scripts/setup.sh
