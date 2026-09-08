@@ -29,6 +29,13 @@ The setup script supports macOS (Apple Silicon or Intel). Prerequisites: Rust/Ca
 Python 3.10+, uv, Vite+ (`vp`), Node 24.20+ (the tested version), CMake, and Xcode
 Command Line Tools. Node runs TypeScript directly and supplies the WebSocket API.
 
+The C++ example requires **C++26 mode**, tested with AppleClang 21.0.0 and CMake
+3.30.0. Where CMake does not yet model C++26 for the compiler, the build checks
+and explicitly uses `-std=c++26`; unsupported compilers fail configuration.
+Language mode does not imply every C++26 feature is implemented—check the
+[Clang feature status](https://clang.llvm.org/cxx_status.html) and
+[libc++ feature status](https://libcxx.llvm.org/Status/Cxx26.html) for specific features.
+
 ```sh
 bash scripts/setup.sh
 ```
