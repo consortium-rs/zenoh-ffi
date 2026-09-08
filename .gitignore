@@ -1,0 +1,50 @@
+# Downloaded Zenoh dependencies and integration-run logs
+/.zenoh/
+/.logs/
+*.log
+
+# Rust build output (keep the application lockfile)
+/rust/target/
+!/rust/Cargo.lock
+
+# Python environments, bytecode, packaging, and tool caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+/python/build/
+/python/dist/
+
+# CMake and native build output
+/cpp/build/
+/cpp/build-*/
+/cpp/cmake-build-*/
+CMakeUserPresets.json
+
+# JavaScript / TypeScript dependencies and generated output
+node_modules/
+/ts/dist/
+/ts/coverage/
+*.tsbuildinfo
+
+# Local environment settings (allow shareable templates)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# OS and editor-local files
+.DS_Store
+._*
+Thumbs.db
+.idea/
+*.swp
+*.swo
+*~

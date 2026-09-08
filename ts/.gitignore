@@ -1,0 +1,5 @@
+# Share the project's editor configuration, but not personal workspace files.
+!.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json

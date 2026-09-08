@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.16)
+project(zenoh_cpp_demo LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(zenohc REQUIRED CONFIG PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../.zenoh/zenoh-c")
+add_executable(zenoh-cpp main.cpp)
+target_include_directories(zenoh-cpp PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../.zenoh/zenoh-cpp-1.10.1/include")
+target_compile_definitions(zenoh-cpp PRIVATE ZENOHCXX_ZENOHC ZENOH_CONFIG_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../config/client.json5")
+target_link_libraries(zenoh-cpp PRIVATE zenohc::lib)
+set_target_properties(zenoh-cpp PROPERTIES
+    BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/../.zenoh/zenoh-c/lib")
