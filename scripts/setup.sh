@@ -8,7 +8,7 @@ case "$(uname -s)/$(uname -m)" in
   Darwin/x86_64) target=x86_64-apple-darwin ;;
   *) echo 'This setup script currently supports macOS only.' >&2; exit 1 ;;
 esac
-for tool in curl unzip tar cargo uv vp node cmake install_name_tool codesign; do
+for tool in curl unzip tar cargo uv vp node cmake protoc install_name_tool codesign; do
   command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool" >&2; exit 1; }
 done
 mkdir -p .zenoh
@@ -28,6 +28,23 @@ tar -xzf .zenoh/zenoh-cpp.tar.gz -C .zenoh
 # The release dylib contains its CI runner's absolute install name.
 install_name_tool -id @rpath/libzenohc.dylib .zenoh/zenoh-c/lib/libzenohc.dylib
 codesign --force --sign - .zenoh/zenoh-c/lib/libzenohc.dylib
+# Build only the two OpenCV modules used by the example (no GUI/camera dependencies).
+fetch "https://github.com/opencv/opencv/archive/refs/tags/4.13.0.tar.gz" .zenoh/opencv.tar.gz
+if [ ! -d .zenoh/opencv-4.13.0 ]; then
+  tar -xzf .zenoh/opencv.tar.gz -C .zenoh
+fi
+cmake -S .zenoh/opencv-4.13.0 -B .zenoh/opencv-build \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/.zenoh/opencv" \
+  -DBUILD_LIST=core,imgproc -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF \
+  -DBUILD_EXAMPLES=OFF -DBUILD_opencv_apps=OFF -DBUILD_JAVA=OFF \
+  -DBUILD_opencv_python3=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF \
+  -DWITH_OPENCL=OFF -DWITH_LAPACK=OFF -DWITH_EIGEN=OFF -DENABLE_CCACHE=OFF \
+  -DWITH_JPEG=OFF -DWITH_PNG=OFF -DWITH_TIFF=OFF -DWITH_WEBP=OFF \
+  -DWITH_OPENJPEG=OFF -DWITH_OPENEXR=OFF -DWITH_AVIF=OFF \
+  -DWITH_PROTOBUF=OFF -DWITH_FLATBUFFERS=OFF
+cmake --build .zenoh/opencv-build --parallel 4
+cmake --install .zenoh/opencv-build
+protoc -I proto --python_out=python/src/python proto/demo.proto
 (cd python && uv sync --locked)
 (cd ts && vp install --frozen-lockfile)
 cargo build --locked --manifest-path rust/Cargo.toml

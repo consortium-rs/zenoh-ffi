@@ -1,9 +1,8 @@
-# TypeScript Zenoh example
+# TypeScript Node client
 
-Start the bridge described in the repository's root README, then run `vp run start`
-in this directory. This uses Node 24.20+ to run `src/demo.ts` directly. Set
-`DEMO_SECONDS` to change the default 30 seconds.
-
-Install with `vp install --frozen-lockfile`. Validate with `vp check`, `vp test`,
-and `vp run build`. The existing library entry point is separate from the runnable
-Zenoh demo.
+Run `vp install --frozen-lockfile` and `vp run start` with Node 24.20+ and the Zenoh
+remote-API bridge running. No browser or TypeScript compilation is required.
+The client loads `../proto/demo.proto` with protobufjs, publishes a sum of 6,
+and decodes binary results from all four languages. Run `vp check`, `vp test`,
+and `vp run build` for the package checks. See the root README for setup and
+Rust orchestration.

@@ -1,4 +1,5 @@
 {
   "C_Cpp.default.compileCommands": ["${workspaceFolder}/cpp/build/compile_commands.json"],
-  "C_Cpp.default.cppStandard": "c++26"
+  "C_Cpp.default.cppStandard": "c++26",
+  "cmake.sourceDirectory": "/Users/ethanwu/Developer/zenoh-ffi/cpp"
 }

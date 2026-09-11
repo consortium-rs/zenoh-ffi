@@ -1,118 +1,115 @@
 # Zenoh in four languages
 
-Rust, Python, C++, and TypeScript each subscribe to `demo/example/**` and publish
-one greeting per second on `demo/example/<language>` using Zenoh 1.10.1.
+Rust orchestrates a local Zenoh bridge and Rust, Python, C++, and TypeScript
+clients. All four publish binary protobuf messages on `demo/example/<language>`
+and decode messages from `demo/example/**`. TypeScript runs directly in Node.
 
-## Run everything
+The shared schema is [`proto/demo.proto`](proto/demo.proto): each `Result` carries
+its language, sequence number, operation, and numeric values.
 
-After completing the setup below, run this from the repository root:
+| Client | Small computation | Published values |
+| --- | --- | --- |
+| Rust | Sequence counter | `[sequence]` |
+| Python | CPU PyTorch matrix multiplication | `[4, 5]` |
+| C++ | OpenCV threshold of a 2×2 grayscale image, then count bright pixels | `[2]` |
+| TypeScript / Node | Sum of `[1, 2, 3]` | `[6]` |
 
-```sh
-python3 scripts/run.py
-```
+No model, image download, GPU, browser, or camera is required.
 
-This starts a local Zenoh remote-API bridge and all four clients, runs them for
-10 seconds, checks all **12 cross-language message routes**, and stops its processes.
-It exits nonzero if a client fails or any route is missing. Logs are in `.logs/`.
-For a longer run (Ctrl-C also stops the processes):
+## Setup
 
-```sh
-python3 scripts/run.py --seconds 60
-```
-
-Ports **7447** (Zenoh TCP) and **10000** (WebSocket) must be free. Both listen only
-on `127.0.0.1`. No multicast discovery or separate router is needed.
-
-## Set up or rebuild
-
-The setup script supports macOS (Apple Silicon or Intel). Prerequisites: Rust/Cargo,
-Python 3.10+, uv, Vite+ (`vp`), Node 24.20+ (the tested version), CMake, and Xcode
-Command Line Tools. Node runs TypeScript directly and supplies the WebSocket API.
-
-The C++ example requires **C++26 mode**, tested with AppleClang 21.0.0 and CMake
-3.30.0. Where CMake does not yet model C++26 for the compiler, the build checks
-and explicitly uses `-std=c++26`; unsupported compilers fail configuration.
-Language mode does not imply every C++26 feature is implemented—check the
-[Clang feature status](https://clang.llvm.org/cxx_status.html) and
-[libc++ feature status](https://libcxx.llvm.org/Status/Cxx26.html) for specific features.
-The example uses `std::println` for output, `std::format` for message payloads,
-`std::views::iota` for the publishing sequence, and chrono duration literals.
-Output is explicitly flushed so redirected logs remain visible during a run.
+The setup script is tested on macOS Apple Silicon. Install Rust/Cargo, Python 3.10+, uv, Vite+
+(`vp`), Node 24.20+ (tested), CMake, and Xcode Command Line Tools. Install the
+protobuf compiler and C++ runtime together:
 
 ```sh
+brew install protobuf
 bash scripts/setup.sh
 ```
 
-Dependencies live in `.zenoh/`, `python/.venv/`, and `ts/node_modules/`; no Zenoh
-system installation is needed. The setup script also repairs the macOS install
-name in the released C library and signs the modified library locally.
-The starter Conan recipe is not used; CMake consumes the official Zenoh C release
-and C++ headers directly.
+Setup downloads Zenoh 1.10.1 and builds OpenCV 4.13.0 locally with only `core` and
+`imgproc`. The first build takes a few minutes. Dependencies live in `.zenoh/`,
+`python/.venv/`, and `ts/node_modules/`. Protobuf is discovered through CMake;
+if using a nonstandard installation, add its `bin` directory to `PATH` and set
+`CMAKE_PREFIX_PATH` to its installation prefix.
 
-## Run each language separately
+C++ requires C++26 mode, tested with AppleClang 21 and CMake 3.30. The existing
+fallback checks `-std=c++26` when CMake does not model the compiler's C++26 support.
+The starter Conan recipe is not used.
 
-Run these commands from the repository root, each in a separate terminal.
-Start the bridge first:
+Rust generates protobuf bindings with `prost-build` during compilation; CMake
+generates the C++ bindings. Setup generates Python bindings with `protoc` before
+installing the Python package. Node loads the same `.proto` using `protobufjs`.
+After changing the schema, rerun setup to regenerate and rebuild all clients.
+The Python protobuf runtime must be at least as new as the compiler's generated
+Python version (tested with protoc 36.1 / Python protobuf 7.36.1).
+
+## Run
+
+From the repository root:
+
+```sh
+cargo run --locked --manifest-path rust/Cargo.toml -- --seconds 10
+```
+
+Rust starts the bridge and all clients, waits for every `READY` marker, releases
+all publishers together, verifies all **12 cross-language protobuf routes**, and
+checks the numerical results received by the Rust client. Failures return a
+nonzero status. Child processes are stopped on completion, failure, or Ctrl-C.
+Logs are in `.logs/`. `--seconds` must be at least 3 and defaults to 10.
+
+Ports **7447** (Zenoh TCP) and **10000** (WebSocket) must be free; both bind to
+`127.0.0.1`. Multicast discovery is disabled. TypeScript uses the remote-API
+WebSocket bridge; native clients use `config/client.json5`.
+
+The old `python3 scripts/run.py --seconds 10` command remains a compatibility
+entry point that executes the Rust orchestrator.
+
+## Run clients individually
+
+Start the bridge in a separate terminal:
 
 ```sh
 .zenoh/bridge/zenoh-bridge-remote-api --listen tcp/127.0.0.1:7447 --ws-port 127.0.0.1:10000 --no-multicast-scouting
 ```
 
-Then start the four clients while the bridge is running:
+Then run each client in its own terminal:
 
 ```sh
-cargo run --locked --manifest-path rust/Cargo.toml
-```
-
-```sh
+cargo run --locked --manifest-path rust/Cargo.toml -- --client
 python/.venv/bin/zenoh-python
-```
-
-```sh
 cpp/build/zenoh-cpp
+(cd ts && vp run start)
 ```
 
-```sh
-cd ts
-vp run start
-```
-
-Clients run for 30 seconds by default; set `DEMO_SECONDS=60` before a command to
-change that. Each prints `READY <language>` and `RECV <key> <payload>`.
-The native clients share `config/client.json5`; TypeScript connects to the bridge
-at `ws://127.0.0.1:10000`.
+Clients run for 30 seconds by default; set `DEMO_SECONDS` to change that. Each
+prints `READY <language>` and `RECV <key> <language> <operation>`. Rust, Python,
+and Node also print decoded values. `DEMO_START_FILE` is the internal startup
+barrier managed by the orchestrator; leave it unset for standalone clients.
 
 ## Validation
-
-### VS Code IntelliSense
-
-Open either the repository root or `cpp/` in VS Code with the Microsoft C/C++
-extension. The checked-in workspace settings select C++26 and read CMake's
-`cpp/build/compile_commands.json`, including the compiler, SDK, defines, and
-Zenoh include paths. Generate it with `cmake -S cpp -B cpp/build` from the
-repository root (also done by the setup script). The generated database stays
-ignored because it contains machine-specific paths.
-
-If old diagnostics remain, run **C/C++: Reset IntelliSense Database** and then
-**Developer: Reload Window** from the Command Palette. For persistent errors,
-**C/C++: Log Diagnostics** shows the compiler and arguments actually in use.
-
-### Build and messaging checks
 
 ```sh
 cargo fmt --check --manifest-path rust/Cargo.toml
 cargo build --locked --manifest-path rust/Cargo.toml
 cmake --build cpp/build
 (cd ts && vp check && vp test && vp run build)
-python3 scripts/run.py
+cargo run --locked --manifest-path rust/Cargo.toml -- --seconds 10
 ```
 
-The integration runner is the messaging test; the existing TypeScript unit test
-only covers the starter library function. Node may print an experimental
-WebAssembly warning from the Zenoh package's dependency; message exchange works
-on the tested Node 24.20.0 runtime.
+The integration runner verifies real binary interoperability and computed values;
+the starter TypeScript unit test covers only the starter library function.
+Node may print an experimental WebAssembly warning from the Zenoh dependency.
 
-Official APIs: [Rust](https://github.com/eclipse-zenoh/zenoh),
+VS Code uses `cpp/build/compile_commands.json` for compiler and dependency paths.
+Setup generates it; regenerate with `cmake -S cpp -B cpp/build`. If diagnostics
+are stale, run **C/C++: Reset IntelliSense Database** then **Developer: Reload
+Window**.
+
+API references: [protobuf](https://protobuf.dev/getting-started/),
+[PyTorch matmul](https://docs.pytorch.org/docs/stable/generated/torch.matmul.html),
+[OpenCV thresholding](https://docs.opencv.org/4.13.0/d7/d4d/tutorial_py_thresholding.html),
+[Zenoh Rust](https://github.com/eclipse-zenoh/zenoh),
 [Python](https://github.com/eclipse-zenoh/zenoh-python),
 [C++](https://github.com/eclipse-zenoh/zenoh-cpp), and
-[TypeScript and its remote-API bridge](https://github.com/eclipse-zenoh/zenoh-ts).
+[TypeScript](https://github.com/eclipse-zenoh/zenoh-ts).

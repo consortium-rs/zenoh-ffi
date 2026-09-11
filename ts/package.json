@@ -32,7 +32,8 @@
     "start": "node src/demo.ts"
   },
   "dependencies": {
-    "@eclipse-zenoh/zenoh-ts": "1.10.1"
+    "@eclipse-zenoh/zenoh-ts": "1.10.1",
+    "protobufjs": "^7.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
